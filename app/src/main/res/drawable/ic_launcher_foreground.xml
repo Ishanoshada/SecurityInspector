@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <!-- Outer Shield -->
+  <path
+      android:fillColor="#38BDF8"
+      android:pathData="M54,12 L84,24 V52 C84,72 70,88 54,96 C38,88 24,72 24,52 V24 L54,12 Z"/>
+  <!-- Inner Dark Shield Cutout -->
+  <path
+      android:fillColor="#0F172A"
+      android:pathData="M54,18 L78,28 V52 C78,68 67,82 54,89 C41,82 30,68 30,52 V28 L54,18 Z"/>
+  <!-- Security Check / Lock Symbol / CTF Star -->
+  <path
+      android:fillColor="#38BDF8"
+      android:pathData="M44,52 L51,59 L66,42 L70,46 L51,67 L40,56 Z"/>
+  <!-- Cyber accent dot -->
+  <path
+      android:fillColor="#F43F5E"
+      android:pathData="M49,35 A5,5 0 1,1 59,35 A5,5 0 1,1 49,35 Z"/>
+</vector>

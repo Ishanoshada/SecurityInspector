@@ -1,0 +1,45 @@
+# Android build outputs
+**/build/
+**/out/
+*.apk
+*.ap_
+*.aar
+*.bundle
+*.tsa
+
+# Files for the Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Gradle and Kotlin caches
+.gradle/
+.kotlin/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+
+# Local machine configuration
+local.properties
+
+# Signing credentials and private keys
+*.jks
+*.keystore
+*.p12
+*.pem
+key.properties
+keystore.properties
+
+# Generated and temporary files
+.DS_Store
+Thumbs.db
+desktop.ini
+captures/
+.externalNativeBuild
+.cxx
+.artifacts/
+*.log
+*.hprof
+.info

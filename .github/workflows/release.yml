@@ -1,0 +1,112 @@
+name: Build and Publish Android Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    name: Build APK and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 2. Java ──────────────────────────────────────────────────
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # ── 3. Android SDK (v4 + explicit packages, no `tools`) ──────
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      # ── 4. Install API 37 with the correct package ID ────────────
+      - name: Install Android API 37 and build-tools
+        run: |
+          set -e
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager --install "platforms;android-37.0"
+          sdkmanager --install "build-tools;37.0.0"
+          sdkmanager --list_installed || true
+
+      # ── 5. Symlink android-37.0 → android-37 (AGP expects bare name)
+      - name: Fix API 37 platform folder name
+        run: |
+          set -e
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
+          if [ -d "$SDK/platforms/android-37.0" ]; then
+            ln -sfn "$SDK/platforms/android-37.0" "$SDK/platforms/android-37"
+            echo "Linked $SDK/platforms/android-37 -> android-37.0"
+          else
+            echo "android-37.0 not found; skipping symlink"
+            ls -la "$SDK/platforms" || true
+          fi
+
+      # ── 6. FIX THE PERMISSION BUG — make gradlew executable ──────
+      - name: Make Gradle wrapper executable
+        run: |
+          set -e
+          chmod +x ./gradlew
+          ls -la ./gradlew
+          # Also fix gradle/wrapper if it lost +x
+          [ -f gradle/wrapper/gradle-wrapper.jar ] && \
+            chmod +r gradle/wrapper/gradle-wrapper.jar || true
+
+      # ── 7. Gradle setup ──────────────────────────────────────────
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # ── 8. Build ─────────────────────────────────────────────────
+      - name: Build debug APK
+        run: ./gradlew --no-daemon assembleDebug
+
+      # ── 9. Package (discover the APK instead of hardcoding) ──────
+      - name: Package APK and tagged source
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -e
+          mkdir -p dist
+
+          APK="$(find app/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)"
+          if [ -z "$APK" ]; then
+            echo "::error::No debug APK found in app/build/outputs/apk/debug/"
+            find app/build/outputs -type f || true
+            exit 1
+          fi
+          echo "Found APK: $APK"
+          cp "$APK" "dist/SentinelX-Security-Inspector-${RELEASE_TAG}.apk"
+
+          git archive --format=zip \
+            --prefix="SentinelX-Security-Inspector-${RELEASE_TAG}/" \
+            --output="dist/SentinelX-Source-${RELEASE_TAG}.zip" \
+            "$GITHUB_SHA"
+
+          ls -la dist/
+
+      # ── 10. Publish ──────────────────────────────────────────────
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SentinelX ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: dist/*
